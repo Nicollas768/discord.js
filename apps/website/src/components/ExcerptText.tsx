@@ -1,5 +1,6 @@
 import type { ApiModel, Excerpt } from '@microsoft/api-extractor-model';
 import { ExcerptTokenKind } from '@microsoft/api-extractor-model';
+import React, { type ReactNode } from 'react';
 import { BuiltinDocumentationLinks } from '~/util/builtinDocumentationLinks';
 import { DISCORD_API_TYPES_DOCS_URL } from '~/util/constants';
 import { ItemLink } from './ItemLink';
@@ -24,25 +25,15 @@ export function ExcerptText({ model, excerpt }: ExcerptTextProps) {
 		<span>
 			{excerpt.spannedTokens.map((token, idx) => {
 				// TODO: Doesn't match <string, null> for Record's
-				// In order to match "string" and " | string"
-				const symbolName = token.text.replaceAll(/\W/g, '');
+				// In order to match "string" and " | string | boolean | number"
+				const symbolNames = token.text.split(' | ').map((text, idx) => (idx === 0 ? text : ` | ${text}`));
 
-				if (symbolName in BuiltinDocumentationLinks) {
-					const href = BuiltinDocumentationLinks[symbolName as keyof typeof BuiltinDocumentationLinks];
-
-					const prefix = token.text.slice(0, token.text.indexOf(symbolName));
-					const suffix = token.text.slice(token.text.indexOf(symbolName) + symbolName.length);
-
-					return (
-						<>
-							{prefix}
-							<a className="text-blurple" href={href} key={idx} rel="external noreferrer noopener" target="_blank">
-								{symbolName}
-							</a>
-							{suffix}
-						</>
-					);
-				}
+				const basicTypeDocumentation = generateBasicTypeDocumentation(
+					symbolNames.length === 1 ? symbolNames[0]! : symbolNames,
+					token.text,
+					idx,
+				);
+				if (basicTypeDocumentation) return basicTypeDocumentation;
 
 				if (token.kind === ExcerptTokenKind.Reference) {
 					const source = token.canonicalReference?.source;
@@ -86,4 +77,48 @@ export function ExcerptText({ model, excerpt }: ExcerptTextProps) {
 			})}
 		</span>
 	);
+}
+
+function generateBasicTypeDocumentation(
+	symbolName: string[] | string,
+	fullText: string,
+	idx: number,
+): ReactNode | undefined {
+	if (Array.isArray(symbolName)) {
+		const nodes = symbolName.map((name) => {
+			// TODO: Doesn't match unions like "Type & { key?: string | undefined; }"
+			if (name.includes('}')) return undefined;
+
+			const normalizedName = name.replaceAll(/\W/g, '');
+
+			return generateBasicTypeDocumentation(normalizedName, name, idx);
+		});
+
+		if (nodes.filter(Boolean).length === 0) return;
+
+		return nodes;
+	} else if (symbolName in BuiltinDocumentationLinks) {
+		const href = BuiltinDocumentationLinks[symbolName as keyof typeof BuiltinDocumentationLinks];
+
+		const prefix = fullText.slice(0, fullText.indexOf(symbolName));
+		const suffix = fullText.slice(fullText.indexOf(symbolName) + symbolName.length);
+
+		return (
+			<>
+				{prefix}
+				<a
+					className="text-blurple"
+					href={href}
+					key={`${symbolName}-${idx}`}
+					rel="external noreferrer noopener"
+					target="_blank"
+				>
+					{symbolName}
+				</a>
+				{suffix}
+			</>
+		);
+	}
+
+	return undefined;
 }
