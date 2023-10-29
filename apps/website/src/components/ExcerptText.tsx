@@ -1,5 +1,6 @@
 import type { ApiModel, Excerpt } from '@microsoft/api-extractor-model';
 import { ExcerptTokenKind } from '@microsoft/api-extractor-model';
+import { BuiltinDocumentationLinks } from '~/util/builtinDocumentationLinks';
 import { DISCORD_API_TYPES_DOCS_URL } from '~/util/constants';
 import { ItemLink } from './ItemLink';
 import { resolveItemURI } from './documentation/util';
@@ -22,6 +23,27 @@ export function ExcerptText({ model, excerpt }: ExcerptTextProps) {
 	return (
 		<span>
 			{excerpt.spannedTokens.map((token, idx) => {
+				// TODO: Doesn't match <string, null> for Record's
+				// In order to match "string" and " | string"
+				const symbolName = token.text.replaceAll(/\W/g, '');
+
+				if (symbolName in BuiltinDocumentationLinks) {
+					const href = BuiltinDocumentationLinks[symbolName as keyof typeof BuiltinDocumentationLinks];
+
+					const prefix = token.text.slice(0, token.text.indexOf(symbolName));
+					const suffix = token.text.slice(token.text.indexOf(symbolName) + symbolName.length);
+
+					return (
+						<>
+							{prefix}
+							<a className="text-blurple" href={href} key={idx} rel="external noreferrer noopener" target="_blank">
+								{symbolName}
+							</a>
+							{suffix}
+						</>
+					);
+				}
+
 				if (token.kind === ExcerptTokenKind.Reference) {
 					const source = token.canonicalReference?.source;
 					const symbol = token.canonicalReference?.symbol;
