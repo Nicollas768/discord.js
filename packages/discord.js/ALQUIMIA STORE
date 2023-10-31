@@ -1,0 +1,35 @@
+```javascript
+const { Client, Intents } = require('discord.js');
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+
+client.once('ready', () => {
+  console.log(`Bot está pronto como ${client.user.tag}`);
+});
+
+client.on('messageCreate', (message) => {
+  if (message.author.bot) return;
+
+  // Verifique se a mensagem começa com um comando de vendas
+  if (message.content.startsWith('!produto')) {
+    // Extrair o nome do produto da mensagem
+    const produto = message.content.slice('!produto'.length).trim();
+
+    // Simular uma consulta ao banco de dados para obter informações do produto
+    // Substitua isso com sua própria lógica de gerenciamento de produtos
+    const produtoInfo = {
+      nome: produto,
+      preço: '$19.99',
+      estoque: 10,
+    };
+
+    // Responda com informações sobre o produto
+    message.reply(`Informações sobre o produto "${produtoInfo.nome}":
+Preço: ${produtoInfo.preço}
+Estoque disponível: ${produtoInfo.estoque}`);
+  }
+
+  // Adicione mais comandos e funcionalidades de vendas conforme necessário
+});
+
+client.login('MTE2ODI1OTM4MzU1ODQxNDUyNw.GEooXr.QIBlCwQONY1XijxHfdpOL-LlgTmlz8TNvo0EWU');
+```
